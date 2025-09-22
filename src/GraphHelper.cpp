@@ -75,6 +75,8 @@ Graph::Graph(igraph_t* graph,
   this->_graph = graph;
   this->_remove_graph = false;
 
+  this->init_inclist_adjlist();
+
   if (edge_weights.size() != this->ecount())
     throw Exception("Edge weights vector inconsistent length with the edge count of the graph.");
   this->_edge_weights = edge_weights;
@@ -89,7 +91,7 @@ Graph::Graph(igraph_t* graph,
   this->_node_self_weights = node_self_weights;
 
   this->_correct_self_loops = correct_self_loops;
-  igraph_vector_int_init(&this->_temp_igraph_vector, this->vcount());
+
   this->init_admin();
 }
 
@@ -100,6 +102,8 @@ Graph::Graph(igraph_t* graph,
 {
   this->_graph = graph;
   this->_remove_graph = false;
+
+  this->init_inclist_adjlist();
 
   if (edge_weights.size() != this->ecount())
     throw Exception("Edge weights vector inconsistent length with the edge count of the graph.");
@@ -113,7 +117,7 @@ Graph::Graph(igraph_t* graph,
   this->_correct_self_loops = this->has_self_loops();
 
   this->_node_self_weights = node_self_weights;
-  igraph_vector_int_init(&this->_temp_igraph_vector, this->vcount());
+
   this->init_admin();
 }
 
@@ -123,6 +127,8 @@ Graph::Graph(igraph_t* graph,
 {
   this->_graph = graph;
   this->_remove_graph = false;
+
+  this->init_inclist_adjlist();
 
   if (edge_weights.size() != this->ecount())
     throw Exception("Edge weights vector inconsistent length with the edge count of the graph.");
@@ -134,7 +140,7 @@ Graph::Graph(igraph_t* graph,
   this->_node_sizes = node_sizes;
 
   this->_correct_self_loops = correct_self_loops;
-  igraph_vector_int_init(&this->_temp_igraph_vector, this->vcount());
+
   this->init_admin();
   this->set_self_weights();
 }
@@ -145,6 +151,9 @@ Graph::Graph(igraph_t* graph,
 {
   this->_graph = graph;
   this->_remove_graph = false;
+
+  this->init_inclist_adjlist();
+
   if (edge_weights.size() != this->ecount())
     throw Exception("Edge weights vector inconsistent length with the edge count of the graph.");
   this->_edge_weights = edge_weights;
@@ -156,7 +165,6 @@ Graph::Graph(igraph_t* graph,
 
   this->_correct_self_loops = this->has_self_loops();
 
-  igraph_vector_int_init(&this->_temp_igraph_vector, this->vcount());
   this->init_admin();
   this->set_self_weights();
 }
@@ -170,7 +178,6 @@ Graph* Graph::GraphFromEdgeWeights(igraph_t* graph, vector<double> const& edge_w
   g->_edge_weights = edge_weights;
   g->_is_weighted = true;
   g->set_default_node_size();
-  igraph_vector_int_init(&g->_temp_igraph_vector, g->vcount());
   g->init_admin();
   g->set_self_weights();
 
@@ -186,7 +193,7 @@ Graph* Graph::GraphFromEdgeWeights(igraph_t* graph, vector<double> const& edge_w
   g->_edge_weights = edge_weights;
   g->_is_weighted = true;
   g->set_default_node_size();
-  igraph_vector_int_init(&g->_temp_igraph_vector, g->vcount());
+
   g->init_admin();
   g->set_self_weights();
 
@@ -203,7 +210,7 @@ Graph* Graph::GraphFromNodeSizes(igraph_t* graph, vector<double> const& node_siz
 
   g->set_default_edge_weight();
   g->_is_weighted = false;
-  igraph_vector_int_init(&g->_temp_igraph_vector, g->vcount());
+
   g->init_admin();
   g->set_self_weights();
   
@@ -226,7 +233,6 @@ Graph* Graph::GraphFromNodeSizes(igraph_t* graph, vector<double> const& node_siz
 
   g->_correct_self_loops = g->has_self_loops();
 
-  igraph_vector_int_init(&g->_temp_igraph_vector, g->vcount());
   g->init_admin();
   g->set_self_weights();
 
@@ -237,10 +243,13 @@ Graph::Graph(igraph_t* graph, int correct_self_loops)
 {
   this->_graph = graph;
   this->_remove_graph = false;
+
+  this->init_inclist_adjlist();
+
   this->_correct_self_loops = correct_self_loops;
   this->set_defaults();
   this->_is_weighted = false;
-  igraph_vector_int_init(&this->_temp_igraph_vector, this->vcount());
+
   this->init_admin();
   this->set_self_weights();
 }
@@ -249,12 +258,14 @@ Graph::Graph(igraph_t* graph)
 {
   this->_graph = graph;
   this->_remove_graph = false;
+
+  this->init_inclist_adjlist();
+
   this->set_defaults();
   this->_is_weighted = false;
 
   this->_correct_self_loops = this->has_self_loops();
 
-  igraph_vector_int_init(&this->_temp_igraph_vector, this->vcount());
   this->init_admin();
   this->set_self_weights();
 }
@@ -266,7 +277,25 @@ Graph::~Graph()
     igraph_destroy((igraph_t*)this->_graph);
     delete this->_graph;
   }
-  igraph_vector_int_destroy(&this->_temp_igraph_vector);
+
+  igraph_lazy_inclist_destroy(&this->_inclist_in);
+  igraph_lazy_inclist_destroy(&this->_inclist_out);
+  igraph_lazy_inclist_destroy(&this->_inclist_all);
+
+  igraph_lazy_adjlist_destroy(&this->_adjlist_in);
+  igraph_lazy_adjlist_destroy(&this->_adjlist_out);
+  igraph_lazy_adjlist_destroy(&this->_adjlist_all);
+}
+
+void Graph::init_inclist_adjlist()
+{
+  igraph_lazy_inclist_init(this->_graph, &this->_inclist_in, IGRAPH_IN, IGRAPH_LOOPS_TWICE);
+  igraph_lazy_inclist_init(this->_graph, &this->_inclist_out, IGRAPH_OUT, IGRAPH_LOOPS_TWICE);
+  igraph_lazy_inclist_init(this->_graph, &this->_inclist_all, IGRAPH_ALL, IGRAPH_LOOPS_TWICE);
+
+  igraph_lazy_adjlist_init(this->_graph, &this->_adjlist_in, IGRAPH_IN, IGRAPH_LOOPS_TWICE, IGRAPH_MULTIPLE);
+  igraph_lazy_adjlist_init(this->_graph, &this->_adjlist_out, IGRAPH_OUT, IGRAPH_LOOPS_TWICE, IGRAPH_MULTIPLE);
+  igraph_lazy_adjlist_init(this->_graph, &this->_adjlist_all, IGRAPH_ALL, IGRAPH_LOOPS_TWICE, IGRAPH_MULTIPLE);
 }
 
 int Graph::has_self_loops()
@@ -440,8 +469,7 @@ void Graph::cache_neighbour_edges(size_t v, igraph_neimode_t mode)
     cerr << "Degree: " << degree << endl;
   #endif
 
-  igraph_vector_int_t *incident_edges = &this->_temp_igraph_vector;
-  igraph_incident(this->_graph, incident_edges, v, mode, IGRAPH_LOOPS);
+  igraph_vector_int_t *incident_edges;
 
   vector<size_t>* _cached_neigh_edges = NULL;
   switch (mode)
@@ -449,14 +477,17 @@ void Graph::cache_neighbour_edges(size_t v, igraph_neimode_t mode)
     case IGRAPH_IN:
       this->_current_node_cache_neigh_edges_from = v;
       _cached_neigh_edges = &(this->_cached_neigh_edges_from);
+      incident_edges = igraph_lazy_inclist_get(&this->_inclist_in, v);
       break;
     case IGRAPH_OUT:
       this->_current_node_cache_neigh_edges_to = v;
       _cached_neigh_edges = &(this->_cached_neigh_edges_to);
+      incident_edges = igraph_lazy_inclist_get(&this->_inclist_out, v);
       break;
     case IGRAPH_ALL:
       this->_current_node_cache_neigh_edges_all = v;
       _cached_neigh_edges = &(this->_cached_neigh_edges_all);
+      incident_edges = igraph_lazy_inclist_get(&this->_inclist_all, v);
       break;
   }
   _cached_neigh_edges->assign(igraph_vector_int_get_ptr(incident_edges, 0),
@@ -512,8 +543,7 @@ void Graph::cache_neighbours(size_t v, igraph_neimode_t mode)
     cerr << "Degree: " << degree << endl;
   #endif
 
-  igraph_vector_int_t *neighbours = &this->_temp_igraph_vector;
-  igraph_neighbors(this->_graph, neighbours, v, mode, IGRAPH_LOOPS_TWICE, IGRAPH_MULTIPLE);
+  igraph_vector_int_t *neighbours;
 
   vector<size_t>* _cached_neighs = NULL;
   switch (mode)
@@ -521,14 +551,17 @@ void Graph::cache_neighbours(size_t v, igraph_neimode_t mode)
     case IGRAPH_IN:
       this->_current_node_cache_neigh_from = v;
       _cached_neighs = &(this->_cached_neighs_from);
+      neighbours = igraph_lazy_adjlist_get(&this->_adjlist_in, v);
       break;
     case IGRAPH_OUT:
       this->_current_node_cache_neigh_to = v;
       _cached_neighs = &(this->_cached_neighs_to);
+      neighbours = igraph_lazy_adjlist_get(&this->_adjlist_out, v);
       break;
     case IGRAPH_ALL:
       this->_current_node_cache_neigh_all = v;
       _cached_neighs = &(this->_cached_neighs_all);
+      neighbours = igraph_lazy_adjlist_get(&this->_adjlist_all, v);
       break;
   }
   _cached_neighs->assign(igraph_vector_int_get_ptr(neighbours, 0),
