@@ -11,7 +11,7 @@ include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 include(packaging)
 
-find_package(igraph 0.10 CONFIG REQUIRED)
+find_package(igraph 1 CONFIG REQUIRED)
 
 # Set C++ standard version
 set(CMAKE_CXX_STANDARD 11)
