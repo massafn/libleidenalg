@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 3.23)
 
 project(example)
 
-find_package(igraph 0.10 CONFIG REQUIRED)
+find_package(igraph 1 CONFIG REQUIRED)
 find_package(libleidenalg 0.11 CONFIG REQUIRED)
 
 add_executable(

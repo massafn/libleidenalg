@@ -441,7 +441,7 @@ void Graph::cache_neighbour_edges(size_t v, igraph_neimode_t mode)
   #endif
 
   igraph_vector_int_t *incident_edges = &this->_temp_igraph_vector;
-  igraph_incident(this->_graph, incident_edges, v, mode);
+  igraph_incident(this->_graph, incident_edges, v, mode, IGRAPH_LOOPS);
 
   vector<size_t>* _cached_neigh_edges = NULL;
   switch (mode)
@@ -513,7 +513,7 @@ void Graph::cache_neighbours(size_t v, igraph_neimode_t mode)
   #endif
 
   igraph_vector_int_t *neighbours = &this->_temp_igraph_vector;
-  igraph_neighbors(this->_graph, neighbours, v, mode);
+  igraph_neighbors(this->_graph, neighbours, v, mode, IGRAPH_LOOPS_TWICE, IGRAPH_MULTIPLE);
 
   vector<size_t>* _cached_neighs = NULL;
   switch (mode)
