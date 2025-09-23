@@ -13,6 +13,10 @@ include(packaging)
 
 find_package(igraph 1 CONFIG REQUIRED)
 
+set_target_properties(igraph::igraph PROPERTIES
+  INTERFACE_LINK_LIBRARIES ""
+)
+
 # Set C++ standard version
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
