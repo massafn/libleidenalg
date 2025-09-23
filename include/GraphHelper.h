@@ -173,7 +173,18 @@ class LIBLEIDENALG_EXPORT Graph
     int _remove_graph;
 
     const igraph_t* _graph;
-    igraph_vector_int_t _temp_igraph_vector;
+
+    void init_inclist_adjlist();
+    /* We use lazy inclist and adjlist so that we can easily get whatever
+     * we need, without needing additional memory.
+     */
+    igraph_lazy_inclist_t _inclist_in;
+    igraph_lazy_inclist_t _inclist_out;
+    igraph_lazy_inclist_t _inclist_all;
+
+    igraph_lazy_adjlist_t _adjlist_in;
+    igraph_lazy_adjlist_t _adjlist_out;
+    igraph_lazy_adjlist_t _adjlist_all;
 
     // Utility variables to easily access the strength of each node
     vector<double> _strength_in;
