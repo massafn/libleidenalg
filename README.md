@@ -15,7 +15,8 @@ only partially optimising a partition, so that some community assignments remain
 fixed [^10]. It also provides some support for community detection on bipartite
 graphs.
 
-This package contains the `C++` code only. Most people will find it easier to work with the Python interface at https://github.com/vtraag/leidenalg.
+This package contains the `C++` code only. Most people will find it easier to work with the Python interface at https://github.com/vtraag/leidenalg
+or the Elixir interface at https://github.com/georgeguimaraes/leidenfold.
 
 # Installation
 
