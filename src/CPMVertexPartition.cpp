@@ -3,22 +3,41 @@
 CPMVertexPartition::CPMVertexPartition(Graph* graph,
       vector<size_t> membership, double resolution_parameter) :
         LinearResolutionParameterVertexPartition(graph,
-        membership, resolution_parameter)
+        membership, resolution_parameter),
+        pop_lambda(0.0), pop_threshold(0.0)
 { }
 
 CPMVertexPartition::CPMVertexPartition(Graph* graph,
       vector<size_t> membership) :
         LinearResolutionParameterVertexPartition(graph,
-        membership)
+        membership),
+        pop_lambda(0.0), pop_threshold(0.0)
 { }
 
 CPMVertexPartition::CPMVertexPartition(Graph* graph,
       double resolution_parameter) :
-        LinearResolutionParameterVertexPartition(graph, resolution_parameter)
+        LinearResolutionParameterVertexPartition(graph, resolution_parameter),
+        pop_lambda(0.0), pop_threshold(0.0)
 { }
 
 CPMVertexPartition::CPMVertexPartition(Graph* graph) :
-        LinearResolutionParameterVertexPartition(graph)
+        LinearResolutionParameterVertexPartition(graph),
+        pop_lambda(0.0), pop_threshold(0.0)
+{ }
+
+CPMVertexPartition::CPMVertexPartition(Graph* graph,
+      vector<size_t> membership, double resolution_parameter,
+      double pop_lambda, double pop_threshold) :
+        LinearResolutionParameterVertexPartition(graph,
+        membership, resolution_parameter),
+        pop_lambda(pop_lambda), pop_threshold(pop_threshold)
+{ }
+
+CPMVertexPartition::CPMVertexPartition(Graph* graph,
+      double resolution_parameter,
+      double pop_lambda, double pop_threshold) :
+        LinearResolutionParameterVertexPartition(graph, resolution_parameter),
+        pop_lambda(pop_lambda), pop_threshold(pop_threshold)
 { }
 
 CPMVertexPartition::~CPMVertexPartition()
@@ -26,12 +45,14 @@ CPMVertexPartition::~CPMVertexPartition()
 
 CPMVertexPartition* CPMVertexPartition::create(Graph* graph)
 {
-  return new CPMVertexPartition(graph, this->resolution_parameter);
+  return new CPMVertexPartition(graph, this->resolution_parameter,
+                                this->pop_lambda, this->pop_threshold);
 }
 
 CPMVertexPartition* CPMVertexPartition::create(Graph* graph, vector<size_t> const& membership)
 {
-  return new CPMVertexPartition(graph, membership, this->resolution_parameter);
+  return new CPMVertexPartition(graph, membership, this->resolution_parameter,
+                                this->pop_lambda, this->pop_threshold);
 }
 
 /********************************************************************************
@@ -111,6 +132,30 @@ double CPMVertexPartition::diff_move(size_t v, size_t new_comm)
     #ifdef DEBUG
       cerr << "\t" << "diff: " << diff << endl;;
     #endif
+
+    // Population penalty
+    if (this->pop_lambda > 0.0)
+    {
+      double node_pop      = this->graph->node_pop(v);
+      double pop_old_before = this->cpop(old_comm);
+      double pop_old_after  = pop_old_before - node_pop;
+      double pop_new_before = this->cpop(new_comm);
+      double pop_new_after  = pop_new_before + node_pop;
+
+      double penalty_before = 0.0;
+      if (pop_old_before > this->pop_threshold)
+        penalty_before += this->pop_lambda * pop_old_before;
+      if (pop_new_before > this->pop_threshold)
+        penalty_before += this->pop_lambda * pop_new_before;
+
+      double penalty_after = 0.0;
+      if (pop_old_after > this->pop_threshold)
+        penalty_after += this->pop_lambda * pop_old_after;
+      if (pop_new_after > this->pop_threshold)
+        penalty_after += this->pop_lambda * pop_new_after;
+
+      diff -= (penalty_after - penalty_before);
+    }
   }
   #ifdef DEBUG
     cerr << "exit CPMVertexPartition::diff_move(" << v << ", " << new_comm << ")" << endl;
@@ -135,6 +180,14 @@ double CPMVertexPartition::quality(double resolution_parameter)
       cerr << "\t" << "Comm: " << c << ", w_c=" << w << ", n_c=" << csize << ", comm_possible_edges=" << comm_possible_edges << ", p=" << this->graph->density() << "." << endl;
     #endif
     mod += w - resolution_parameter*comm_possible_edges;
+
+    // Population penalty
+    if (this->pop_lambda > 0.0)
+    {
+      double cpop = this->cpop(c);
+      if (cpop > this->pop_threshold)
+        mod -= this->pop_lambda * cpop;
+    }
   }
   #ifdef DEBUG
     cerr << "exit double CPMVertexPartition::quality()" << endl;

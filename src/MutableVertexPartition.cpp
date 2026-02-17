@@ -88,6 +88,14 @@ size_t MutableVertexPartition::cnodes(size_t comm)
     return 0;
 }
 
+double MutableVertexPartition::cpop(size_t comm)
+{
+  if (comm < this->_cpop.size())
+    return this->_cpop[comm];
+  else
+    return 0;
+}
+
 vector<size_t> MutableVertexPartition::get_community(size_t comm)
 {
   vector<size_t> community;
@@ -144,6 +152,8 @@ void MutableVertexPartition::init_admin()
   this->_csize.resize(this->_n_communities);
   this->_cnodes.clear();
   this->_cnodes.resize(this->_n_communities);
+  this->_cpop.clear();
+  this->_cpop.resize(this->_n_communities);
 
   this->_current_node_cache_community_from = n + 1; this->_cached_weight_from_community.resize(this->_n_communities, 0);
   this->_current_node_cache_community_to = n + 1;   this->_cached_weight_to_community.resize(this->_n_communities, 0);
@@ -165,6 +175,8 @@ void MutableVertexPartition::init_admin()
     this->_csize[v_comm] += this->graph->node_size(v);
     // Update the community size
     this->_cnodes[v_comm] += 1;
+    // Update the community population
+    this->_cpop[v_comm] += this->graph->node_pop(v);
   }
 
   size_t m = graph->ecount();
@@ -285,6 +297,7 @@ void MutableVertexPartition::relabel_communities(vector<size_t> const& new_comm_
   vector<double> new_total_weight_to_comm(nbcomms, 0.0);
   vector<double> new_csize(nbcomms, 0);
   vector<size_t> new_cnodes(nbcomms, 0);
+  vector<double> new_cpop(nbcomms, 0);
 
   // Relabel community admin
   for (size_t c = 0; c < new_comm_id.size(); c++) {
@@ -295,6 +308,7 @@ void MutableVertexPartition::relabel_communities(vector<size_t> const& new_comm_
       new_total_weight_to_comm[new_c] = this->_total_weight_to_comm[c];
       new_csize[new_c] = this->_csize[c];
       new_cnodes[new_c] = this->_cnodes[c];
+      new_cpop[new_c] = this->_cpop[c];
     }
   }
 
@@ -303,6 +317,7 @@ void MutableVertexPartition::relabel_communities(vector<size_t> const& new_comm_
   this->_total_weight_to_comm = new_total_weight_to_comm;
   this->_csize = new_csize;
   this->_cnodes = new_cnodes;
+  this->_cpop = new_cpop;
 
   this->_empty_communities.clear();
   for (size_t c = 0; c < nbcomms; c++) {
@@ -516,6 +531,7 @@ size_t MutableVertexPartition::add_empty_community()
 
   this->_csize.resize(this->_n_communities);                  this->_csize[new_comm] = 0;
   this->_cnodes.resize(this->_n_communities);                 this->_cnodes[new_comm] = 0;
+  this->_cpop.resize(this->_n_communities);                   this->_cpop[new_comm] = 0;
   this->_total_weight_in_comm.resize(this->_n_communities);   this->_total_weight_in_comm[new_comm] = 0;
   this->_total_weight_from_comm.resize(this->_n_communities); this->_total_weight_from_comm[new_comm] = 0;
   this->_total_weight_to_comm.resize(this->_n_communities);   this->_total_weight_to_comm[new_comm] = 0;
@@ -582,6 +598,7 @@ void MutableVertexPartition::move_node(size_t v,size_t new_comm)
   #endif
   this->_cnodes[old_comm] -= 1;
   this->_csize[old_comm] -= node_size;
+  this->_cpop[old_comm] -= this->graph->node_pop(v);
   #ifdef DEBUG
     cerr << "Removed from old community." << endl;
   #endif
@@ -628,6 +645,7 @@ void MutableVertexPartition::move_node(size_t v,size_t new_comm)
   // Add to new community
   this->_cnodes[new_comm] += 1;
   this->_csize[new_comm] += this->graph->node_size(v);
+  this->_cpop[new_comm] += this->graph->node_pop(v);
 
   // Switch outgoing links
   #ifdef DEBUG

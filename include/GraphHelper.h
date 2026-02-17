@@ -72,6 +72,12 @@ class LIBLEIDENALG_EXPORT Graph
     Graph(igraph_t* graph,
       vector<double> const& edge_weights,
       vector<double> const& node_sizes,
+      vector<double> const& node_self_weights,
+      vector<double> const& node_pop,
+      int correct_self_loops);
+    Graph(igraph_t* graph,
+      vector<double> const& edge_weights,
+      vector<double> const& node_sizes,
       vector<double> const& node_self_weights, int correct_self_loops);
     Graph(igraph_t* graph,
       vector<double> const& edge_weights,
@@ -143,6 +149,9 @@ class LIBLEIDENALG_EXPORT Graph
     inline double node_size(size_t v)
     { return this->_node_sizes[v]; };
 
+    inline double node_pop(size_t v)
+    { return this->_node_pop[v]; };
+
     inline double node_self_weight(size_t v)
     { return this->_node_self_weights[v]; };
 
@@ -197,6 +206,7 @@ class LIBLEIDENALG_EXPORT Graph
     vector<double> _edge_weights; // Used for the weight of the edges.
     vector<double> _node_sizes; // Used for the size of the nodes.
     vector<double> _node_self_weights; // Used for the self weight of the nodes.
+    vector<double> _node_pop; // Used for the population of the nodes.
 
     void cache_neighbours(size_t v, igraph_neimode_t mode);
     vector<size_t> _cached_neighs_from; size_t _current_node_cache_neigh_from;
@@ -220,6 +230,7 @@ class LIBLEIDENALG_EXPORT Graph
     void set_defaults();
     void set_default_edge_weight();
     void set_default_node_size();
+    void set_default_node_pop();
     void set_self_weights();
 
 };

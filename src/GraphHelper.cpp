@@ -98,6 +98,38 @@ Graph::Graph(igraph_t* graph,
 Graph::Graph(igraph_t* graph,
   vector<double> const& edge_weights,
   vector<double> const& node_sizes,
+  vector<double> const& node_self_weights,
+  vector<double> const& node_pop,
+  int correct_self_loops)
+{
+  this->_graph = graph;
+  this->_remove_graph = false;
+  this->init_inclist_adjlist();
+
+  if (edge_weights.size() != this->ecount())
+    throw Exception("Edge weights vector inconsistent length with the edge count of the graph.");
+  this->_edge_weights = edge_weights;
+  this->_is_weighted = true;
+
+  if (node_sizes.size() != this->vcount())
+    throw Exception("Node size vector inconsistent length with the vertex count of the graph.");
+  this->_node_sizes = node_sizes;
+
+  if (node_self_weights.size() != this->vcount())
+    throw Exception("Node self weights vector inconsistent length with the vertex count of the graph.");
+  this->_node_self_weights = node_self_weights;
+
+  if (node_pop.size() != this->vcount())
+    throw Exception("Node population vector inconsistent length with the vertex count of the graph.");
+  this->_node_pop = node_pop;
+
+  this->_correct_self_loops = correct_self_loops;
+  this->init_admin();
+}
+
+Graph::Graph(igraph_t* graph,
+  vector<double> const& edge_weights,
+  vector<double> const& node_sizes,
   vector<double> const& node_self_weights)
 {
   this->_graph = graph;
@@ -325,6 +357,7 @@ void Graph::set_defaults()
 {
   this->set_default_edge_weight();
   this->set_default_node_size();
+  this->set_default_node_pop();
 }
 
 void Graph::set_default_edge_weight()
@@ -344,6 +377,14 @@ void Graph::set_default_node_size()
   // Set default node size of 1
   this->_node_sizes.clear(); this->_node_sizes.resize(n);
   fill(this->_node_sizes.begin(), this->_node_sizes.end(), 1);
+}
+
+void Graph::set_default_node_pop()
+{
+  size_t n = this->vcount();
+  this->_node_pop.resize(n);
+  for (size_t v = 0; v < n; v++)
+    this->_node_pop[v] = 1.0;  // default: population = 1
 }
 
 void Graph::set_self_weights()
@@ -776,7 +817,14 @@ Graph* Graph::collapse_graph(MutableVertexPartition* partition)
   for (size_t c = 0; c < partition->n_communities(); c++)
     csizes[c] = partition->csize(c);
 
+  // Aggregate population per community
+  vector<double> cpops(n_collapsed, 0);
+  for (size_t c = 0; c < partition->n_communities(); c++)
+    cpops[c] = partition->cpop(c);  // cpop() to be added in Step 3
+
+  // Use existing constructor that auto-computes self_weights, then assign pop
   Graph* G = new Graph(graph, collapsed_weights, csizes, this->_correct_self_loops);
+  G->_node_pop = cpops;
   G->_remove_graph = true;
   #ifdef DEBUG
     cerr << "exit Graph::collapse_graph(vector<size_t> membership)" << endl << endl;
