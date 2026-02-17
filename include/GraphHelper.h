@@ -152,6 +152,9 @@ class LIBLEIDENALG_EXPORT Graph
     inline double node_pop(size_t v)
     { return this->_node_pop[v]; };
 
+    inline void set_node_pop(vector<double> const& pop)
+    { this->_node_pop = pop; };
+
     inline double node_self_weight(size_t v)
     { return this->_node_self_weights[v]; };
 
