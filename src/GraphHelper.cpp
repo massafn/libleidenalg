@@ -384,7 +384,7 @@ void Graph::set_default_node_pop()
   size_t n = this->vcount();
   this->_node_pop.resize(n);
   for (size_t v = 0; v < n; v++)
-    this->_node_pop[v] = 1.0;  // default: population = 1
+    this->_node_pop[v] = 0.0;  // default: population = 0 (penalty is no-op unless node_pop is set)
 }
 
 void Graph::set_self_weights()
