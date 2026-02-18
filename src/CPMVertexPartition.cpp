@@ -132,29 +132,30 @@ double CPMVertexPartition::diff_move(size_t v, size_t new_comm)
     #ifdef DEBUG
       cerr << "\t" << "diff: " << diff << endl;;
     #endif
-
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Population penalty
     if (this->pop_lambda > 0.0)
     {
-      double node_pop      = this->graph->node_pop(v);
-      double pop_old_before = this->cpop(old_comm);
-      double pop_old_after  = pop_old_before - node_pop;
-      double pop_new_before = this->cpop(new_comm);
-      double pop_new_after  = pop_new_before + node_pop;
-
-      double penalty_before = 0.0;
+      double node_pop      = this->graph->node_pop(v); // similar to  nsize
+      double pop_old_before = this->cpop(old_comm); // similar to  csize_old
+      double pop_old_after  = pop_old_before - node_pop; // population of origin cluster if a move is made
+      double pop_new_before = this->cpop(new_comm); // similar to  csize_new
+      double pop_new_after  = pop_new_before + node_pop; // population of dest cluster if a move is made
+// similar to possible_edge_difference_old
+      double penalty_before = 0.0; 
       if (pop_old_before > this->pop_threshold)
         penalty_before += this->pop_lambda * pop_old_before;
       if (pop_new_before > this->pop_threshold)
         penalty_before += this->pop_lambda * pop_new_before;
-
-      double penalty_after = 0.0;
+// similar to possible_edge_difference_new
+      double penalty_after = 0.0; 
       if (pop_old_after > this->pop_threshold)
         penalty_after += this->pop_lambda * pop_old_after;
       if (pop_new_after > this->pop_threshold)
         penalty_after += this->pop_lambda * pop_new_after;
 
       diff -= (penalty_after - penalty_before);
+          ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     }
   }
   #ifdef DEBUG
@@ -181,7 +182,7 @@ double CPMVertexPartition::quality(double resolution_parameter)
     #endif
     mod += w - resolution_parameter*comm_possible_edges;
 
-    // Population penalty
+    // population penalty
     if (this->pop_lambda > 0.0)
     {
       double cpop = this->cpop(c);
