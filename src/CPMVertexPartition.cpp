@@ -4,44 +4,56 @@ CPMVertexPartition::CPMVertexPartition(Graph* graph,
       vector<size_t> membership, double resolution_parameter) :
         LinearResolutionParameterVertexPartition(graph,
         membership, resolution_parameter),
-        pop_lambda(0.0), pop_threshold(0.0), pop_min_threshold(0.0)
+        pop_lambda1(0.0), pop_lambda2(0.0), pop_lambda3(0.0),
+        pop_lambda4(0.0), pop_lambda5(0.0),
+        pop_threshold(0.0), pop_min_threshold(0.0)
 { }
 
 CPMVertexPartition::CPMVertexPartition(Graph* graph,
       vector<size_t> membership) :
         LinearResolutionParameterVertexPartition(graph,
         membership),
-        pop_lambda(0.0), pop_threshold(0.0), pop_min_threshold(0.0)
+        pop_lambda1(0.0), pop_lambda2(0.0), pop_lambda3(0.0),
+        pop_lambda4(0.0), pop_lambda5(0.0),
+        pop_threshold(0.0), pop_min_threshold(0.0)
 { }
 
 CPMVertexPartition::CPMVertexPartition(Graph* graph,
       double resolution_parameter) :
         LinearResolutionParameterVertexPartition(graph, resolution_parameter),
-        pop_lambda(0.0), pop_threshold(0.0), pop_min_threshold(0.0)
+        pop_lambda1(0.0), pop_lambda2(0.0), pop_lambda3(0.0),
+        pop_lambda4(0.0), pop_lambda5(0.0),
+        pop_threshold(0.0), pop_min_threshold(0.0)
 { }
 
 CPMVertexPartition::CPMVertexPartition(Graph* graph) :
         LinearResolutionParameterVertexPartition(graph),
-        pop_lambda(0.0), pop_threshold(0.0), pop_min_threshold(0.0)
+        pop_lambda1(0.0), pop_lambda2(0.0), pop_lambda3(0.0),
+        pop_lambda4(0.0), pop_lambda5(0.0),
+        pop_threshold(0.0), pop_min_threshold(0.0)
 { }
 
 CPMVertexPartition::CPMVertexPartition(Graph* graph,
       vector<size_t> membership, double resolution_parameter,
-      double pop_lambda, double pop_threshold,
-      double pop_min_threshold) :
+      double pop_lambda1, double pop_lambda2, double pop_lambda3,
+      double pop_lambda4, double pop_lambda5,
+      double pop_threshold, double pop_min_threshold) :
         LinearResolutionParameterVertexPartition(graph,
         membership, resolution_parameter),
-        pop_lambda(pop_lambda), pop_threshold(pop_threshold),
-        pop_min_threshold(pop_min_threshold)
+        pop_lambda1(pop_lambda1), pop_lambda2(pop_lambda2), pop_lambda3(pop_lambda3),
+        pop_lambda4(pop_lambda4), pop_lambda5(pop_lambda5),
+        pop_threshold(pop_threshold), pop_min_threshold(pop_min_threshold)
 { }
 
 CPMVertexPartition::CPMVertexPartition(Graph* graph,
       double resolution_parameter,
-      double pop_lambda, double pop_threshold,
-      double pop_min_threshold) :
+      double pop_lambda1, double pop_lambda2, double pop_lambda3,
+      double pop_lambda4, double pop_lambda5,
+      double pop_threshold, double pop_min_threshold) :
         LinearResolutionParameterVertexPartition(graph, resolution_parameter),
-        pop_lambda(pop_lambda), pop_threshold(pop_threshold),
-        pop_min_threshold(pop_min_threshold)
+        pop_lambda1(pop_lambda1), pop_lambda2(pop_lambda2), pop_lambda3(pop_lambda3),
+        pop_lambda4(pop_lambda4), pop_lambda5(pop_lambda5),
+        pop_threshold(pop_threshold), pop_min_threshold(pop_min_threshold)
 { }
 
 CPMVertexPartition::~CPMVertexPartition()
@@ -50,15 +62,17 @@ CPMVertexPartition::~CPMVertexPartition()
 CPMVertexPartition* CPMVertexPartition::create(Graph* graph)
 {
   return new CPMVertexPartition(graph, this->resolution_parameter,
-                                this->pop_lambda, this->pop_threshold,
-                                this->pop_min_threshold);
+                                this->pop_lambda1, this->pop_lambda2, this->pop_lambda3,
+                                this->pop_lambda4, this->pop_lambda5,
+                                this->pop_threshold, this->pop_min_threshold);
 }
 
 CPMVertexPartition* CPMVertexPartition::create(Graph* graph, vector<size_t> const& membership)
 {
   return new CPMVertexPartition(graph, membership, this->resolution_parameter,
-                                this->pop_lambda, this->pop_threshold,
-                                this->pop_min_threshold);
+                                this->pop_lambda1, this->pop_lambda2, this->pop_lambda3,
+                                this->pop_lambda4, this->pop_lambda5,
+                                this->pop_threshold, this->pop_min_threshold);
 }
 
 /********************************************************************************
@@ -140,7 +154,8 @@ double CPMVertexPartition::diff_move(size_t v, size_t new_comm)
     #endif
 
     // Population penalty
-    if (this->pop_lambda > 0.0)
+    if (this->pop_lambda1 > 0.0 || this->pop_lambda2 > 0.0 || this->pop_lambda3 > 0.0 ||
+        this->pop_lambda4 > 0.0 || this->pop_lambda5 > 0.0)
     {
       double node_pop       = this->graph->node_pop(v);
       double pop_old_before = this->cpop(old_comm);
@@ -151,36 +166,90 @@ double CPMVertexPartition::diff_move(size_t v, size_t new_comm)
       double penalty_before = 0.0;
       double penalty_after  = 0.0;
 
-      // Upper bound: penalise communities that exceed pop_threshold
+      // Upper bound: polynomial penalty for communities that exceed pop_threshold
       if (this->pop_threshold > 0.0)
       {
+        // Calculate penalty_before for old community
         if (pop_old_before > this->pop_threshold)
-          penalty_before += this->pop_lambda * pop_old_before;
-        if (pop_new_before > this->pop_threshold)
-          penalty_before += this->pop_lambda * pop_new_before;
+        {
+          double excess = pop_old_before - this->pop_threshold;
+          double term = excess;
+          penalty_before += this->pop_lambda1 * term;
+          term *= excess;
+          penalty_before += this->pop_lambda2 * term;
+          term *= excess;
+          penalty_before += this->pop_lambda3 * term;
+          term *= excess;
+          penalty_before += this->pop_lambda4 * term;
+          term *= excess;
+          penalty_before += this->pop_lambda5 * term;
+        }
 
+        // Calculate penalty_before for new community
+        if (pop_new_before > this->pop_threshold)
+        {
+          double excess = pop_new_before - this->pop_threshold;
+          double term = excess;
+          penalty_before += this->pop_lambda1 * term;
+          term *= excess;
+          penalty_before += this->pop_lambda2 * term;
+          term *= excess;
+          penalty_before += this->pop_lambda3 * term;
+          term *= excess;
+          penalty_before += this->pop_lambda4 * term;
+          term *= excess;
+          penalty_before += this->pop_lambda5 * term;
+        }
+
+        // Calculate penalty_after for old community
         if (pop_old_after > this->pop_threshold)
-          penalty_after += this->pop_lambda * pop_old_after;
+        {
+          double excess = pop_old_after - this->pop_threshold;
+          double term = excess;
+          penalty_after += this->pop_lambda1 * term;
+          term *= excess;
+          penalty_after += this->pop_lambda2 * term;
+          term *= excess;
+          penalty_after += this->pop_lambda3 * term;
+          term *= excess;
+          penalty_after += this->pop_lambda4 * term;
+          term *= excess;
+          penalty_after += this->pop_lambda5 * term;
+        }
+
+        // Calculate penalty_after for new community
         if (pop_new_after > this->pop_threshold)
-          penalty_after += this->pop_lambda * pop_new_after;
+        {
+          double excess = pop_new_after - this->pop_threshold;
+          double term = excess;
+          penalty_after += this->pop_lambda1 * term;
+          term *= excess;
+          penalty_after += this->pop_lambda2 * term;
+          term *= excess;
+          penalty_after += this->pop_lambda3 * term;
+          term *= excess;
+          penalty_after += this->pop_lambda4 * term;
+          term *= excess;
+          penalty_after += this->pop_lambda5 * term;
+        }
       }
 
-      // Lower bound: penalise non-empty communities below pop_min_threshold
-      if (this->pop_min_threshold > 0.0)
+      // Lower bound: keep existing simple linear penalty for lower threshold
+      if (this->pop_min_threshold > 0.0 && this->pop_lambda1 > 0.0)
       {
         // old community before move (always non-empty since v is in it)
         if (pop_old_before < this->pop_min_threshold)
-          penalty_before += this->pop_lambda * (this->pop_min_threshold - pop_old_before);
+          penalty_before += this->pop_lambda1 * (this->pop_min_threshold - pop_old_before);
         // old community after move (only penalise if it still has members)
         if (pop_old_after > 0.0 && pop_old_after < this->pop_min_threshold)
-          penalty_after += this->pop_lambda * (this->pop_min_threshold - pop_old_after);
+          penalty_after += this->pop_lambda1 * (this->pop_min_threshold - pop_old_after);
 
         // new community before move (only penalise if it has members)
         if (pop_new_before > 0.0 && pop_new_before < this->pop_min_threshold)
-          penalty_before += this->pop_lambda * (this->pop_min_threshold - pop_new_before);
+          penalty_before += this->pop_lambda1 * (this->pop_min_threshold - pop_new_before);
         // new community after move (always has members since v just joined)
         if (pop_new_after < this->pop_min_threshold)
-          penalty_after += this->pop_lambda * (this->pop_min_threshold - pop_new_after);
+          penalty_after += this->pop_lambda1 * (this->pop_min_threshold - pop_new_after);
       }
 
       diff -= (penalty_after - penalty_before);
@@ -211,15 +280,28 @@ double CPMVertexPartition::quality(double resolution_parameter)
     mod += w - resolution_parameter*comm_possible_edges;
 
     // Population penalty
-    if (this->pop_lambda > 0.0)
+    if (this->pop_lambda1 > 0.0 || this->pop_lambda2 > 0.0 || this->pop_lambda3 > 0.0 ||
+        this->pop_lambda4 > 0.0 || this->pop_lambda5 > 0.0)
     {
       double cpop = this->cpop(c);
-      // Upper bound
+      // Upper bound: polynomial penalty
       if (this->pop_threshold > 0.0 && cpop > this->pop_threshold)
-        mod -= this->pop_lambda * cpop;
-      // Lower bound (only for non-empty communities)
-      if (this->pop_min_threshold > 0.0 && cpop > 0.0 && cpop < this->pop_min_threshold)
-        mod -= this->pop_lambda * (this->pop_min_threshold - cpop);
+      {
+        double excess = cpop - this->pop_threshold;
+        double term = excess;
+        mod -= this->pop_lambda1 * term;
+        term *= excess;
+        mod -= this->pop_lambda2 * term;
+        term *= excess;
+        mod -= this->pop_lambda3 * term;
+        term *= excess;
+        mod -= this->pop_lambda4 * term;
+        term *= excess;
+        mod -= this->pop_lambda5 * term;
+      }
+      // Lower bound (only for non-empty communities): simple linear penalty
+      if (this->pop_min_threshold > 0.0 && cpop > 0.0 && cpop < this->pop_min_threshold && this->pop_lambda1 > 0.0)
+        mod -= this->pop_lambda1 * (this->pop_min_threshold - cpop);
     }
   }
   #ifdef DEBUG
