@@ -13,12 +13,27 @@ class LIBLEIDENALG_EXPORT RBConfigurationVertexPartition : public LinearResoluti
     RBConfigurationVertexPartition(Graph* graph,
       double resolution_parameter);
     RBConfigurationVertexPartition(Graph* graph);
+
+    RBConfigurationVertexPartition(Graph* graph,
+          vector<size_t> const& membership, double resolution_parameter,
+          double pop_lambda, double pop_threshold,
+          int target_communities, double community_count_lambda);
+    RBConfigurationVertexPartition(Graph* graph,
+          double resolution_parameter,
+          double pop_lambda, double pop_threshold,
+          int target_communities, double community_count_lambda);
+
     virtual ~RBConfigurationVertexPartition();
     virtual RBConfigurationVertexPartition* create(Graph* graph);
     virtual RBConfigurationVertexPartition* create(Graph* graph, vector<size_t> const& membership);
 
     virtual double diff_move(size_t v, size_t new_comm);
     virtual double quality(double resolution_parameter);
+
+    double pop_lambda;
+    double pop_threshold;
+    int target_communities;
+    double community_count_lambda;
 
   protected:
   private:
