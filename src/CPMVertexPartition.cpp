@@ -4,40 +4,50 @@ CPMVertexPartition::CPMVertexPartition(Graph* graph,
       vector<size_t> membership, double resolution_parameter) :
         LinearResolutionParameterVertexPartition(graph,
         membership, resolution_parameter),
-        pop_lambda(0.0), pop_threshold(0.0)
+        pop_lambda1(0.0), pop_lambda2(0.0), pop_lambda3(0.0),
+        pop_lambda4(0.0), pop_lambda5(0.0), pop_threshold(0.0)
 { }
 
 CPMVertexPartition::CPMVertexPartition(Graph* graph,
       vector<size_t> membership) :
         LinearResolutionParameterVertexPartition(graph,
         membership),
-        pop_lambda(0.0), pop_threshold(0.0)
+        pop_lambda1(0.0), pop_lambda2(0.0), pop_lambda3(0.0),
+        pop_lambda4(0.0), pop_lambda5(0.0), pop_threshold(0.0)
 { }
 
 CPMVertexPartition::CPMVertexPartition(Graph* graph,
       double resolution_parameter) :
         LinearResolutionParameterVertexPartition(graph, resolution_parameter),
-        pop_lambda(0.0), pop_threshold(0.0)
+        pop_lambda1(0.0), pop_lambda2(0.0), pop_lambda3(0.0),
+        pop_lambda4(0.0), pop_lambda5(0.0), pop_threshold(0.0)
 { }
 
 CPMVertexPartition::CPMVertexPartition(Graph* graph) :
         LinearResolutionParameterVertexPartition(graph),
-        pop_lambda(0.0), pop_threshold(0.0)
+        pop_lambda1(0.0), pop_lambda2(0.0), pop_lambda3(0.0),
+        pop_lambda4(0.0), pop_lambda5(0.0), pop_threshold(0.0)
 { }
 
 CPMVertexPartition::CPMVertexPartition(Graph* graph,
       vector<size_t> membership, double resolution_parameter,
-      double pop_lambda, double pop_threshold) :
+      double pop_lambda1, double pop_lambda2, double pop_lambda3,
+      double pop_lambda4, double pop_lambda5,
+      double pop_threshold) :
         LinearResolutionParameterVertexPartition(graph,
         membership, resolution_parameter),
-        pop_lambda(pop_lambda), pop_threshold(pop_threshold)
+        pop_lambda1(pop_lambda1), pop_lambda2(pop_lambda2), pop_lambda3(pop_lambda3),
+        pop_lambda4(pop_lambda4), pop_lambda5(pop_lambda5), pop_threshold(pop_threshold)
 { }
 
 CPMVertexPartition::CPMVertexPartition(Graph* graph,
       double resolution_parameter,
-      double pop_lambda, double pop_threshold) :
+      double pop_lambda1, double pop_lambda2, double pop_lambda3,
+      double pop_lambda4, double pop_lambda5,
+      double pop_threshold) :
         LinearResolutionParameterVertexPartition(graph, resolution_parameter),
-        pop_lambda(pop_lambda), pop_threshold(pop_threshold)
+        pop_lambda1(pop_lambda1), pop_lambda2(pop_lambda2), pop_lambda3(pop_lambda3),
+        pop_lambda4(pop_lambda4), pop_lambda5(pop_lambda5), pop_threshold(pop_threshold)
 { }
 
 CPMVertexPartition::~CPMVertexPartition()
@@ -46,13 +56,15 @@ CPMVertexPartition::~CPMVertexPartition()
 CPMVertexPartition* CPMVertexPartition::create(Graph* graph)
 {
   return new CPMVertexPartition(graph, this->resolution_parameter,
-                                this->pop_lambda, this->pop_threshold);
+                                this->pop_lambda1, this->pop_lambda2, this->pop_lambda3,
+                                this->pop_lambda4, this->pop_lambda5, this->pop_threshold);
 }
 
 CPMVertexPartition* CPMVertexPartition::create(Graph* graph, vector<size_t> const& membership)
 {
   return new CPMVertexPartition(graph, membership, this->resolution_parameter,
-                                this->pop_lambda, this->pop_threshold);
+                                this->pop_lambda1, this->pop_lambda2, this->pop_lambda3,
+                                this->pop_lambda4, this->pop_lambda5, this->pop_threshold);
 }
 
 /********************************************************************************
@@ -133,8 +145,9 @@ double CPMVertexPartition::diff_move(size_t v, size_t new_comm)
       cerr << "\t" << "diff: " << diff << endl;;
     #endif
 
-    // Population penalty
-    if (this->pop_lambda > 0.0)
+    // Population penalty (polynomial)
+    if (this->pop_lambda1 > 0.0 || this->pop_lambda2 > 0.0 || this->pop_lambda3 > 0.0 ||
+        this->pop_lambda4 > 0.0 || this->pop_lambda5 > 0.0)
     {
       double node_pop      = this->graph->node_pop(v);
       double pop_old_before = this->cpop(old_comm);
@@ -142,17 +155,19 @@ double CPMVertexPartition::diff_move(size_t v, size_t new_comm)
       double pop_new_before = this->cpop(new_comm);
       double pop_new_after  = pop_new_before + node_pop;
 
-      double penalty_before = 0.0;
-      if (pop_old_before > this->pop_threshold)
-        penalty_before += this->pop_lambda * pop_old_before;
-      if (pop_new_before > this->pop_threshold)
-        penalty_before += this->pop_lambda * pop_new_before;
+      auto calc_penalty = [&](double p) -> double {
+        if (p <= this->pop_threshold)
+          return 0.0;
+        double excess = p - this->pop_threshold;
+        return this->pop_lambda1 * excess
+             + this->pop_lambda2 * excess * excess
+             + this->pop_lambda3 * excess * excess * excess
+             + this->pop_lambda4 * excess * excess * excess * excess
+             + this->pop_lambda5 * excess * excess * excess * excess * excess;
+      };
 
-      double penalty_after = 0.0;
-      if (pop_old_after > this->pop_threshold)
-        penalty_after += this->pop_lambda * pop_old_after;
-      if (pop_new_after > this->pop_threshold)
-        penalty_after += this->pop_lambda * pop_new_after;
+      double penalty_before = calc_penalty(pop_old_before) + calc_penalty(pop_new_before);
+      double penalty_after  = calc_penalty(pop_old_after)  + calc_penalty(pop_new_after);
 
       diff -= (penalty_after - penalty_before);
     }
@@ -181,12 +196,20 @@ double CPMVertexPartition::quality(double resolution_parameter)
     #endif
     mod += w - resolution_parameter*comm_possible_edges;
 
-    // Population penalty
-    if (this->pop_lambda > 0.0)
+    // Population penalty (polynomial)
+    if (this->pop_lambda1 > 0.0 || this->pop_lambda2 > 0.0 || this->pop_lambda3 > 0.0 ||
+        this->pop_lambda4 > 0.0 || this->pop_lambda5 > 0.0)
     {
       double cpop = this->cpop(c);
       if (cpop > this->pop_threshold)
-        mod -= this->pop_lambda * cpop;
+      {
+        double excess = cpop - this->pop_threshold;
+        mod -= this->pop_lambda1 * excess
+             + this->pop_lambda2 * excess * excess
+             + this->pop_lambda3 * excess * excess * excess
+             + this->pop_lambda4 * excess * excess * excess * excess
+             + this->pop_lambda5 * excess * excess * excess * excess * excess;
+      }
     }
   }
   #ifdef DEBUG
