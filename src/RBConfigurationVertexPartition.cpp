@@ -152,10 +152,8 @@ double RBConfigurationVertexPartition::diff_move(size_t v, size_t new_comm)
       double pop_new_after  = pop_new_before + node_pop;
 
       auto calc_penalty = [&](double p) -> double {
-        if (p <= this->pop_threshold)
-          return 0.0;
-        double excess = p - this->pop_threshold;
-        return this->pop_lambda * excess + this->pop_lambda2 * excess * excess;
+        double diff_pop = p - this->pop_threshold;
+        return this->pop_lambda * abs(diff_pop) + this->pop_lambda2 * diff_pop * diff_pop;
       };
 
       double penalty_before = calc_penalty(pop_old_before) + calc_penalty(pop_new_before);
@@ -239,11 +237,8 @@ double RBConfigurationVertexPartition::quality(double resolution_parameter)
     if (this->pop_lambda > 0.0 || this->pop_lambda2 > 0.0)
     {
       double cpop = this->cpop(c);
-      if (cpop > this->pop_threshold)
-      {
-        double excess = cpop - this->pop_threshold;
-        mod -= this->pop_lambda * excess + this->pop_lambda2 * excess * excess;
-      }
+      double diff_pop = cpop - this->pop_threshold;
+      mod -= this->pop_lambda * abs(diff_pop) + this->pop_lambda2 * diff_pop * diff_pop;
     }
   }
 
