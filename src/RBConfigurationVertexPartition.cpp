@@ -145,11 +145,11 @@ double RBConfigurationVertexPartition::diff_move(size_t v, size_t new_comm)
 
     if (this->pop_lambda > 0.0 || this->pop_lambda2 > 0.0)
     {
-      double node_pop      = this->graph->node_pop(v);
-      double pop_old_before = this->cpop(old_comm);
-      double pop_old_after  = pop_old_before - node_pop;
-      double pop_new_before = this->cpop(new_comm);
-      double pop_new_after  = pop_new_before + node_pop;
+      double nsize         = this->graph->node_size(v);
+      double pop_old_before = this->csize(old_comm);
+      double pop_old_after  = pop_old_before - nsize;
+      double pop_new_before = this->csize(new_comm);
+      double pop_new_after  = pop_new_before + nsize;
 
       auto calc_penalty = [&](double p) -> double {
         double diff_pop = p - this->pop_threshold;
@@ -236,8 +236,8 @@ double RBConfigurationVertexPartition::quality(double resolution_parameter)
 
     if (this->pop_lambda > 0.0 || this->pop_lambda2 > 0.0)
     {
-      double cpop = this->cpop(c);
-      double diff_pop = cpop - this->pop_threshold;
+      double csize_c = this->csize(c);
+      double diff_pop = csize_c - this->pop_threshold;
       mod -= this->pop_lambda * abs(diff_pop) + this->pop_lambda2 * diff_pop * diff_pop;
     }
   }
