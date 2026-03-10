@@ -152,6 +152,8 @@ double RBConfigurationVertexPartition::diff_move(size_t v, size_t new_comm)
       double pop_new_after  = pop_new_before + nsize;
 
       auto calc_penalty = [&](double p) -> double {
+        if (p == 0.0)
+          return 0.0;
         double diff_pop = p - this->pop_threshold;
         return this->pop_lambda * abs(diff_pop) + this->pop_lambda2 * diff_pop * diff_pop;
       };
@@ -237,6 +239,8 @@ double RBConfigurationVertexPartition::quality(double resolution_parameter)
     if (this->pop_lambda > 0.0 || this->pop_lambda2 > 0.0)
     {
       double csize_c = this->csize(c);
+      if (csize_c == 0.0)
+        continue;
       double diff_pop = csize_c - this->pop_threshold;
       mod -= this->pop_lambda * abs(diff_pop) + this->pop_lambda2 * diff_pop * diff_pop;
     }
